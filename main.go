@@ -2,18 +2,21 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/d7561985/redshift-test/cmd/redshift"
 	"github.com/d7561985/redshift-test/cmd/redshift/migrate"
+	"github.com/d7561985/tel/v2"
 	"github.com/urfave/cli/v2" // imports as package "cli"
+
+	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
+	l := tel.NewSimple(tel.DefaultDebugConfig())
+	ctx, cancel := context.WithCancel(l.Ctx())
 	defer cancel()
 
 	go func() {
@@ -21,8 +24,7 @@ func main() {
 		signal.Notify(ch, syscall.SIGTERM, os.Interrupt)
 
 		<-ch
-
-		log.Println("stop application")
+		l.Info("stop application")
 		cancel()
 	}()
 
@@ -38,6 +40,6 @@ func main() {
 
 	err := app.RunContext(ctx, os.Args)
 	if err != nil {
-		log.Fatal(err)
+		l.Error("execution", tel.Error(err))
 	}
 }

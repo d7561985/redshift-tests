@@ -3,8 +3,8 @@ package postgres
 import (
 	"context"
 
-	"github.com/d7561985/mongo-ab/pkg/changing"
 	"github.com/d7561985/redshift-test/internal/config"
+	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/pkg/errors"
 )
@@ -40,54 +40,6 @@ func New(ctx context.Context, cfg config.Postgres) (*Repo, error) {
 	}, nil
 }
 
-func (s *Repo) UpdateTX(ctx context.Context, in changing.Transaction) (_ interface{}, err error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	defer func() {
-		if err == nil {
-			err = errors.WithStack(tx.Commit(ctx))
-		} else {
-			_ = tx.Rollback(ctx)
-		}
-	}()
-
-	res := tx.QueryRow(ctx, `INSERT INTO balance("accountId", "balance", "depositAllSum",
-                    "depositCount", "pincoinBalance", "pincoinAllSum") VALUES ($1,$2,$3,$4,$5,$6) 
-		ON CONFLICT ON CONSTRAINT balance_pkey DO UPDATE SET 
-			balance = balance.balance + $2,
-			"depositAllSum" = balance."depositAllSum" + $3,
-            "depositCount" = balance."depositCount" + $4,
-			"pincoinBalance" = balance."pincoinBalance" + $5,
-			"pincoinAllSum" = balance."pincoinAllSum" + $6
-			WHERE balance."accountId" = $1 
-			RETURNING "balance","depositAllSum", "depositCount", "pincoinBalance", "pincoinAllSum"`,
-		in.AccountID, in.Balance, in.DepositAllSum, in.DepositCount, in.PincoinBalance, in.PincoinsAllSum)
-
-	b := Balance{AccountID: in.AccountID}
-	if err = res.Scan(&b.Balance, &b.DepositAllSum, &b.DepositCount, &b.PincoinBalance, &b.PincoinsAllSum); err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	j := NewJournal(b, in)
-
-	sq := `INSERT INTO journal(
-                    "id","transactionId", "accountId", "balance", "change","currency","created_at",
-					"pincoinBalance","pincoinChange","project","revert","type"
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`
-	_, err = tx.Exec(ctx, sq,
-		j.ID, j.TransactionID, j.AccountID, j.Balance, j.Change, j.Currency, j.CreatedAt,
-		j.PincoinBalance, j.PincoinChange, j.Project, j.Revert, j.Type,
-	)
-	if err != nil {
-		return nil, errors.WithStack(err)
-	}
-
-	return b, nil
-}
-
 func (s *Repo) Insert(ctx context.Context, j Journal) error {
 	sq := `INSERT INTO journal("id","transactionId", "accountId", "balance", "change","currency","created_at",
 "pincoinBalance","pincoinChange","project","revert","type"
@@ -102,4 +54,27 @@ func (s *Repo) Insert(ctx context.Context, j Journal) error {
 
 	return nil
 
+}
+
+func (s *Repo) Bulk(ctx context.Context, list []*Journal) error {
+	sq := `INSERT INTO journal("id","transactionId", "accountId", "balance", "change","currency","created_at",
+"pincoinBalance","pincoinChange","project","revert","type"
+                    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`
+
+	batch := &pgx.Batch{}
+
+	for _, j := range list {
+		batch.Queue(sq, j.ID, j.TransactionID, j.AccountID, j.Balance, j.Change, j.Currency, j.CreatedAt,
+			j.PincoinBalance, j.PincoinChange, j.Project, j.Revert, j.Type)
+	}
+
+	br := s.pool.SendBatch(ctx, batch)
+	defer br.Close()
+
+	_, err := br.Exec()
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
 }

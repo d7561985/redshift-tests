@@ -11,5 +11,4 @@ type Postgres struct {
 	//	// for insert operation
 	//	Journal string
 	//}
-
 }
