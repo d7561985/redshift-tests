@@ -1,6 +1,8 @@
 package redshift
 
 import (
+	"time"
+
 	"github.com/d7561985/redshift-test/internal/config"
 	"github.com/d7561985/redshift-test/pkg/service"
 	"github.com/d7561985/redshift-test/store/postgres"
@@ -76,8 +78,10 @@ func (m *postgresCommand) Action(c *cli.Context) error {
 	}
 
 	svc := service.New(service.Config{
-		Size:    cSize,
-		MaxUser: c.Int(fMaxUser),
+		Size:      cSize,
+		MaxUser:   c.Int(fMaxUser),
+		TimeLimit: time.Second * 30,
+		MaxBatch:  100_000,
 	}, repo)
 
 	svc.Run(c.Context)

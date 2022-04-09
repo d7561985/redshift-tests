@@ -18,8 +18,11 @@ type Repo interface {
 }
 
 type Config struct {
-	Size    int
-	MaxUser int
+	Size int
+	//
+	MaxBatch  int
+	TimeLimit time.Duration
+	MaxUser   int
 }
 
 type controller struct {
@@ -44,7 +47,7 @@ func (c *controller) Run(ctx context.Context) {
 			case <-ctx.Done():
 				close(ch)
 				return
-			default:
+			case <-time.After(time.Millisecond):
 			}
 
 			tx := genRequest(uint64(rand.Int()%c.MaxUser), 100)
@@ -61,10 +64,14 @@ func (c *controller) Run(ctx context.Context) {
 		var out int
 
 		start := time.Now()
-		for journal := range ch {
-			batch = append(batch, &journal)
+		last := start
 
-			if len(batch) < c.Size {
+		for journal := range ch {
+			j := journal
+			batch = append(batch, &j)
+
+			if c.MaxBatch >= 0 && len(batch) < c.MaxBatch &&
+				time.Since(last) < c.TimeLimit {
 				continue
 			}
 
@@ -74,10 +81,12 @@ func (c *controller) Run(ctx context.Context) {
 			if err := c.repo.Bulk(context.TODO(), batch); err != nil {
 				l.Fatal("bulk", tel.Error(errors.WithStack(err)))
 			}
-			eTime := time.Now().Sub(t)
 
+			last = time.Now()
+			eTime := last.Sub(t)
+
+			out += len(batch)
 			batch = batch[:0]
-			out += c.Size
 
 			l.Info("progress",
 				tel.Float64("comb/sec", float64(out)/ms.Seconds()),
