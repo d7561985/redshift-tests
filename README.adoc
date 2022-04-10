@@ -36,7 +36,8 @@ FROM 's3://xxx/journal/1649613923.csv'
 iam_role 'arn:aws:iam::xxx:role/read_s3_for_redshift' REGION 'eu-central-1'
 CSV
 IGNOREHEADER as 1
-TIMEFORMAT AS 'auto' -- 'epochmillisecs' -- 'DD.MM.YYYY HH:MI:SS'
+TIMEFORMAT AS 'epochmillisecs' 'auto' -- 'DD.MM.YYYY HH:MI:SS'
+GZIP
 ----
 
 Debug:

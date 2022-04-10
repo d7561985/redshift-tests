@@ -2,6 +2,7 @@ package s3
 
 import (
 	"bytes"
+	"compress/gzip"
 	"context"
 	"fmt"
 	"time"
@@ -48,19 +49,34 @@ func (s *Store) Bulk(cxt context.Context, journals []*postgres.Journal) (string,
 	ctx, cancel := context.WithTimeout(cxt, timeout)
 	defer cancel()
 
-	path := fmt.Sprintf("journal/%d.csv", time.Now().Unix())
+	path := fmt.Sprintf("journal/%d.csv.gz", time.Now().Unix())
 	x := bytes.NewBuffer(nil)
 
 	if err := gocsv.Marshal(&journals, x); err != nil {
 		return "", errors.WithStack(err)
 	}
 
+	w := &bytes.Buffer{}
+	//f, _ := os.Create("file.gz")
+	gw := gzip.NewWriter(w)
+	gw.Comment = "comment"
+	gw.Extra = []byte("extra")
+	gw.ModTime = time.Unix(1e8, 0)
+	gw.Name = "name"
+
+	if _, err := gw.Write(x.Bytes()); err != nil {
+		return "", errors.WithStack(err)
+	}
+
+	_ = gw.Close()
+
 	// Uploads the object to S3. The Context will interrupt the request if the
 	// timeout expires.
 	_, err := s.S3.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(path),
-		Body:   bytes.NewReader(x.Bytes()),
+		Body:   bytes.NewReader(w.Bytes()),
+		//ContentEncoding: aws.String("gzip"),
 	})
 
 	if err != nil {
