@@ -3,9 +3,7 @@ package s3
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -14,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/d7561985/redshift-test/store/postgres"
+	"github.com/gocarina/gocsv"
 	"github.com/pkg/errors"
 )
 
@@ -45,20 +44,22 @@ func New(bucket string) *Store {
 	return &Store{bucket: bucket, S3: svc}
 }
 
-func (s *Store) Bulk(cxt context.Context, journals []*postgres.Journal) error {
+func (s *Store) Bulk(cxt context.Context, journals []*postgres.Journal) (string, error) {
 	ctx, cancel := context.WithTimeout(cxt, timeout)
 	defer cancel()
 
+	path := fmt.Sprintf("journal/%d.csv", time.Now().Unix())
 	x := bytes.NewBuffer(nil)
-	if err := json.NewEncoder(x).Encode(&journals); err != nil {
-		return errors.WithStack(err)
+
+	if err := gocsv.Marshal(&journals, x); err != nil {
+		return "", errors.WithStack(err)
 	}
 
 	// Uploads the object to S3. The Context will interrupt the request if the
 	// timeout expires.
-	p, err := s.S3.PutObjectWithContext(ctx, &s3.PutObjectInput{
+	_, err := s.S3.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
-		Key:    aws.String(time.Now().String() + ".json"),
+		Key:    aws.String(path),
 		Body:   bytes.NewReader(x.Bytes()),
 	})
 
@@ -66,15 +67,11 @@ func (s *Store) Bulk(cxt context.Context, journals []*postgres.Journal) error {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == request.CanceledErrorCode {
 			// If the SDK can determine the request or retry delay was canceled
 			// by a context the CanceledErrorCode error code will be returned.
-			fmt.Fprintf(os.Stderr, "upload canceled due to timeout, %v\n", err)
-		} else {
-			fmt.Fprintf(os.Stderr, "failed to upload object, %v\n", err)
+			return "", errors.WithStack(fmt.Errorf("upload canceled due to timeout: %w", err))
 		}
 
-		os.Exit(1)
+		return "", errors.WithStack(fmt.Errorf("failed to upload object: %w", err))
 	}
 
-	fmt.Printf("successfully uploaded file to %s/%s\n", p.GoString(), s.bucket)
-
-	return nil
+	return path, nil
 }

@@ -56,7 +56,7 @@ func (s *Repo) Insert(ctx context.Context, j Journal) error {
 
 }
 
-func (s *Repo) Bulk(ctx context.Context, list []*Journal) error {
+func (s *Repo) Bulk(ctx context.Context, list []*Journal) (string, error) {
 	sq := `INSERT INTO journal("id","transactionId", "accountId", "balance", "change","currency","created_at",
 "pincoinBalance","pincoinChange","project","revert","type"
                     ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`
@@ -73,8 +73,8 @@ func (s *Repo) Bulk(ctx context.Context, list []*Journal) error {
 
 	_, err := br.Exec()
 	if err != nil {
-		return errors.WithStack(err)
+		return "", errors.WithStack(err)
 	}
 
-	return nil
+	return "direct", nil
 }

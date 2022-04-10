@@ -14,7 +14,7 @@ import (
 )
 
 type Repo interface {
-	Bulk(context.Context, []*postgres.Journal) error
+	Bulk(context.Context, []*postgres.Journal) (string, error)
 }
 
 type Config struct {
@@ -47,7 +47,8 @@ func (c *controller) Run(ctx context.Context) {
 			case <-ctx.Done():
 				close(ch)
 				return
-			case <-time.After(time.Millisecond):
+			case <-time.After(time.Microsecond * 5):
+				//default:
 			}
 
 			tx := genRequest(uint64(rand.Int()%c.MaxUser), 100)
@@ -78,7 +79,8 @@ func (c *controller) Run(ctx context.Context) {
 			t := time.Now()
 			ms := t.Sub(start)
 
-			if err := c.repo.Bulk(context.TODO(), batch); err != nil {
+			f, err := c.repo.Bulk(context.TODO(), batch)
+			if err != nil {
 				l.Fatal("bulk", tel.Error(errors.WithStack(err)))
 			}
 
@@ -93,6 +95,7 @@ func (c *controller) Run(ctx context.Context) {
 				tel.Duration("duration", ms),
 				tel.Int("out", out),
 				tel.Duration("last", eTime),
+				tel.String("file", f),
 			)
 		}
 	}()
