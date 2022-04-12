@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"encoding/binary"
-	"fmt"
 	"time"
 	"unsafe"
 
@@ -21,21 +20,6 @@ type Balance struct {
 	PincoinsAllSum float64
 }
 
-type DateTime struct {
-	time.Time `csv:"-"`
-}
-
-// Convert the internal date as CSV string
-func (date *DateTime) MarshalCSV() (string, error) {
-	return fmt.Sprintf("%d", date.UnixMilli()), nil
-	//v, err := date.Timestamp.EncodeText(pgtype.NewConnInfo(), nil)
-	//if err != nil {
-	//	return "", err
-	//}
-	//
-	//return string(v), nil
-}
-
 type Journal struct {
 	// for csv use hexadecimal
 	ID []byte `csv:"id"`
@@ -44,7 +28,7 @@ type Journal struct {
 
 	AccountID uint64 `csv:"accountId"`
 
-	CreatedAt DateTime `csv:"created_at"`
+	CreatedAt time.Time `csv:"created_at"`
 
 	Balance float64 `csv:"balance"`
 	Change  float32 `csv:"change"`
@@ -66,15 +50,12 @@ func NewJournal(b Balance, in changing.Transaction) Journal {
 		trn = []byte{}
 	}
 
-	var t DateTime
-	t.Time = time.Now()
-
 	return Journal{
 		ID:            in.Set.ID[:],
 		TransactionID: trn,
 		AccountID:     b.AccountID,
 
-		CreatedAt: t,
+		CreatedAt: time.Now(),
 
 		Balance:        b.Balance,
 		Change:         float32(in.Change),

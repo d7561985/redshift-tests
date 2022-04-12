@@ -47,3 +47,13 @@ system table contain errors of import.
 ----
 select * from sys_load_error_detail
 ----
+
+
+== decoder
+=== CSV
+==== SDK csv
+==== github.com/gocarina/gocsv
+too expensive
+
+==== github.com/jszwec/csvutil
+recommended choice, allows creating hooks for any type

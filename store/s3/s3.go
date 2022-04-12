@@ -2,7 +2,6 @@ package s3
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"fmt"
 	"time"
@@ -12,8 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/d7561985/redshift-test/pkg/decoder"
+	"github.com/d7561985/redshift-test/pkg/decoder/csvutil"
+	"github.com/d7561985/redshift-test/pkg/decoder/gz"
 	"github.com/d7561985/redshift-test/store/postgres"
-	"github.com/gocarina/gocsv"
 	"github.com/pkg/errors"
 )
 
@@ -50,32 +51,19 @@ func (s *Store) Bulk(cxt context.Context, journals []*postgres.Journal) (string,
 	defer cancel()
 
 	path := fmt.Sprintf("journal/%d.csv.gz", time.Now().Unix())
+
 	x := bytes.NewBuffer(nil)
-
-	if err := gocsv.Marshal(&journals, x); err != nil {
+	dc := decoder.Decorate(csvutil.Marshal, gz.Marshal)
+	if err := dc(&journals, x); err != nil {
 		return "", errors.WithStack(err)
 	}
-
-	w := &bytes.Buffer{}
-	//f, _ := os.Create("file.gz")
-	gw := gzip.NewWriter(w)
-	gw.Comment = "comment"
-	gw.Extra = []byte("extra")
-	gw.ModTime = time.Unix(1e8, 0)
-	gw.Name = "name"
-
-	if _, err := gw.Write(x.Bytes()); err != nil {
-		return "", errors.WithStack(err)
-	}
-
-	_ = gw.Close()
 
 	// Uploads the object to S3. The Context will interrupt the request if the
 	// timeout expires.
 	_, err := s.S3.PutObjectWithContext(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(path),
-		Body:   bytes.NewReader(w.Bytes()),
+		Body:   bytes.NewReader(x.Bytes()),
 		//ContentEncoding: aws.String("gzip"),
 	})
 
