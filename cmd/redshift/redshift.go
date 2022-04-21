@@ -14,9 +14,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const defMaxUserID = 1
-const defCbRate = 100 * 60
-const defaultWindowTime = time.Second * 10
+const defMaxUserID = 10
+const defCbRate = 5000 * 60 //5k rps
+const defaultWindowTime = time.Second * 60
 
 var dbConnect = "redshift://localhost:5439/dev?sslmode=disable"
 

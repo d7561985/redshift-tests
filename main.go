@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -15,6 +16,10 @@ import (
 )
 
 func main() {
+	defer func() {
+		fmt.Println(">>> end")
+	}()
+
 	l := tel.NewSimple(tel.DefaultDebugConfig())
 	ctx, cancel := context.WithCancel(l.Ctx())
 	defer cancel()

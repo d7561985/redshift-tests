@@ -6,7 +6,6 @@ import (
 
 	"github.com/d7561985/redshift-test/model"
 	"github.com/d7561985/redshift-test/store/pgxx"
-	"github.com/d7561985/tel/v2"
 	"github.com/pkg/errors"
 )
 
@@ -35,7 +34,7 @@ TIMEFORMAT AS 'epochmillisecs' --'DD.MM.YYYY HH:MI:SS'
 GZIP;`
 
 	sql = fmt.Sprintf(sql, dst.Table, dst.Fields, r.cfg.Bucket, dst.Path, r.cfg.IRole)
-	tel.FromCtx(ctx).Debug("copy", tel.String("sql", sql))
+	//tel.FromCtx(ctx).Debug("copy", tel.String("sql", sql))
 
 	_, err := r.ExecContext(ctx, sql)
 

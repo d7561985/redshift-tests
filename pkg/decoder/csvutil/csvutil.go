@@ -7,12 +7,15 @@ import (
 	"io"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jszwec/csvutil"
 	"github.com/pkg/errors"
 )
 
 func Marshal(in interface{}, out io.Writer) (err error) {
 	w := csv.NewWriter(out)
+	defer w.Flush()
+
 	encoder := csvutil.NewEncoder(w)
 	encoder.Register(func(f time.Time) ([]byte, error) {
 		return []byte(fmt.Sprintf("%d", f.UnixMilli())), nil
@@ -22,6 +25,13 @@ func Marshal(in interface{}, out io.Writer) (err error) {
 	encoder.Register(func(src []byte) ([]byte, error) {
 		dst := make([]byte, len(src)*4)
 		idx := hex.Encode(dst, src)
+
+		return dst[:idx], nil
+	})
+
+	encoder.Register(func(src uuid.UUID) ([]byte, error) {
+		dst := make([]byte, len(src)*4)
+		idx := hex.Encode(dst, src[:])
 
 		return dst[:idx], nil
 	})

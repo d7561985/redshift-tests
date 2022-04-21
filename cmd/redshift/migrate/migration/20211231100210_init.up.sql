@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS "players"
 CREATE TABLE IF NOT EXISTS "cb"
 (
     "id"             varbyte                  NOT NULL,
-    "license"        VARBYTE(45)              NOT NULL,
+    "license"        VARCHAR(45)              NOT NULL,
     "playerId"       integer                  NOT NULL,
     "gameName"       VARCHAR(30)              NOT NULL,
     "gameType"       VARCHAR(10)              NOT NULL,

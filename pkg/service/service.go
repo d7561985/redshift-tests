@@ -52,6 +52,8 @@ func New(cfg Config, repo Repo, copy Copy) *controller {
 }
 
 func (c *controller) Run(ctx context.Context) {
+	tel.FromCtx(ctx).Info("start")
+
 	go c.DoPlayer(ctx, c.PlayerRate)
 	go c.DoCB(ctx, c.CBRate)
 
@@ -103,6 +105,10 @@ func (c *controller) DoPlayer(ctx context.Context, rate int) {
 			return
 		}
 
+		if err = c.copy.Copy(ctx, f); err != nil {
+			l.Fatal("copy", tel.Any("f", f), tel.Error(err))
+		}
+
 		eTime := time.Now().Sub(t)
 
 		l.Info("progress",
@@ -111,7 +117,7 @@ func (c *controller) DoPlayer(ctx context.Context, rate int) {
 			tel.Duration("duration", ms),
 			tel.Int("out", out),
 			tel.Duration("last", eTime),
-			tel.Any("copy", f),
+			tel.Any("path", f.Path),
 		)
 
 		atomic.StoreUint64(&c.PlayerMaxID, c.PlayerMaxID+uint64(num))
@@ -147,8 +153,6 @@ func (c *controller) DoCB(ctx context.Context, rate int) {
 		last = time.Now()
 		out += num
 
-		l.Info(">>", tel.Int("num", num))
-
 		var p []*model.CBet
 		for i := 0; i < num; i++ {
 			ID := rand.Intn(int(atomic.LoadUint64(&c.PlayerMaxID))) + 1
@@ -178,7 +182,7 @@ func (c *controller) DoCB(ctx context.Context, rate int) {
 			tel.Duration("duration", ms),
 			tel.Int("out", out),
 			tel.Duration("last", eTime),
-			tel.Any("copy", f),
+			tel.Any("path", f.Path),
 		)
 	}
 }

@@ -3,7 +3,6 @@ package decoder
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -36,7 +35,6 @@ func Decorate(c ...Decoder) (*string, Decoder) {
 					}
 
 					*header = string(line)
-					fmt.Println(string(line))
 				}
 			}
 		}
