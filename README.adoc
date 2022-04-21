@@ -26,14 +26,14 @@ Important: role should be attached to redshift implicitly and that role should h
           "s3:AbortMultipartUpload",
           "s3:CreateBucket"
 ----
-
 after that you will be able to perform super cheep insert
 
 [source]
 ----
 COPY journal(id,transactionId,accountId,created_at,balance,change,pincoinBalance,pincoinChange,type,project,currency,revert)
-FROM 's3://xxx/journal/1649613923.csv'
-iam_role 'arn:aws:iam::xxx:role/read_s3_for_redshift' REGION 'eu-central-1'
+FROM 's3://bi-redshift-uploader/journal/1649613923.csv'
+iam_role 'arn:aws:iam::xxx:role/read_s3_for_redshift'
+REGION 'eu-central-1'
 CSV
 IGNOREHEADER as 1
 TIMEFORMAT AS 'epochmillisecs' 'auto' -- 'DD.MM.YYYY HH:MI:SS'

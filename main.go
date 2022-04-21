@@ -15,23 +15,6 @@ import (
 )
 
 func main() {
-	//// Some text we want to compress.
-	//original := "bird and frog"
-	//
-	//// Open a file for writing.
-	//f, _ := os.Create("file.gz")
-	//
-	//// Create gzip writer.
-	//w := gzip.NewWriter(f)
-	//
-	//// Write bytes in compressed form to the file.
-	//w.Write([]byte(original))
-	//
-	//// Close the file.
-	//w.Close()
-	//
-	//fmt.Println("DONE")
-
 	l := tel.NewSimple(tel.DefaultDebugConfig())
 	ctx, cancel := context.WithCancel(l.Ctx())
 	defer cancel()

@@ -11,10 +11,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/d7561985/redshift-test/model"
 	"github.com/d7561985/redshift-test/pkg/decoder"
 	"github.com/d7561985/redshift-test/pkg/decoder/csvutil"
 	"github.com/d7561985/redshift-test/pkg/decoder/gz"
-	"github.com/d7561985/redshift-test/store/postgres"
 	"github.com/pkg/errors"
 )
 
@@ -46,15 +46,23 @@ func New(bucket string) *Store {
 	return &Store{bucket: bucket, S3: svc}
 }
 
-func (s *Store) Bulk(cxt context.Context, journals []*postgres.Journal) (string, error) {
+func (s *Store) PlayerInsert(ctx context.Context, p []*model.Player) (string, error) {
+	return s.Bulk(ctx, "players", p)
+}
+
+func (s *Store) CasinoBetInsert(ctx context.Context, p []*model.CBet) (string, error) {
+	return s.Bulk(ctx, "cb", p)
+}
+
+func (s *Store) Bulk(cxt context.Context, folder string, arr interface{}) (string, error) {
 	ctx, cancel := context.WithTimeout(cxt, timeout)
 	defer cancel()
 
-	path := fmt.Sprintf("journal/%d.csv.gz", time.Now().Unix())
+	path := fmt.Sprintf("%s/%d.csv.gz", folder, time.Now().Unix())
 
 	x := bytes.NewBuffer(nil)
 	dc := decoder.Decorate(csvutil.Marshal, gz.Marshal)
-	if err := dc(&journals, x); err != nil {
+	if err := dc(&arr, x); err != nil {
 		return "", errors.WithStack(err)
 	}
 
