@@ -14,8 +14,12 @@ import (
 )
 
 type Repo interface {
-	PlayerInsert(ctx context.Context, p []*model.Player) (string, error)
-	CasinoBetInsert(ctx context.Context, p []*model.CBet) (string, error)
+	PlayerInsert(ctx context.Context, p []*model.Player) (model.Copy, error)
+	CasinoBetInsert(ctx context.Context, p []*model.CBet) (model.Copy, error)
+}
+
+type Copy interface {
+	Copy(ctx context.Context, dst model.Copy) error
 }
 
 type Config struct {
@@ -30,9 +34,10 @@ type Config struct {
 type controller struct {
 	Config
 	repo Repo
+	copy Copy
 }
 
-func New(cfg Config, repo Repo) *controller {
+func New(cfg Config, repo Repo, copy Copy) *controller {
 	if cfg.WindowTime == 0 ||
 		cfg.PlayerRate == 0 ||
 		cfg.CBRate == 0 {
@@ -42,6 +47,7 @@ func New(cfg Config, repo Repo) *controller {
 	return &controller{
 		Config: cfg,
 		repo:   repo,
+		copy:   copy,
 	}
 }
 
@@ -105,7 +111,7 @@ func (c *controller) DoPlayer(ctx context.Context, rate int) {
 			tel.Duration("duration", ms),
 			tel.Int("out", out),
 			tel.Duration("last", eTime),
-			tel.String("file", f),
+			tel.Any("copy", f),
 		)
 
 		atomic.StoreUint64(&c.PlayerMaxID, c.PlayerMaxID+uint64(num))
@@ -160,6 +166,10 @@ func (c *controller) DoCB(ctx context.Context, rate int) {
 			return
 		}
 
+		if err = c.copy.Copy(ctx, f); err != nil {
+			l.Fatal("copy", tel.Any("f", f), tel.Error(err))
+		}
+
 		eTime := time.Now().Sub(t)
 
 		l.Info("progress",
@@ -168,7 +178,7 @@ func (c *controller) DoCB(ctx context.Context, rate int) {
 			tel.Duration("duration", ms),
 			tel.Int("out", out),
 			tel.Duration("last", eTime),
-			tel.String("file", f),
+			tel.Any("copy", f),
 		)
 	}
 }

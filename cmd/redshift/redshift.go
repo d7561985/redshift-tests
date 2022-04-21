@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/d7561985/redshift-test/pkg/repo/test"
+	"github.com/d7561985/redshift-test/pkg/s3copy"
 	"github.com/d7561985/redshift-test/pkg/service"
 	"github.com/d7561985/redshift-test/store/pgxx"
 	"github.com/d7561985/redshift-test/store/s3"
@@ -13,9 +14,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const defMaxUserID = 10
+const defMaxUserID = 1
 const defCbRate = 100 * 60
-const defaultWindowTime = time.Second * 30
+const defaultWindowTime = time.Second * 10
 
 var dbConnect = "redshift://localhost:5439/dev?sslmode=disable"
 
@@ -26,8 +27,9 @@ const (
 
 	fStore = "store"
 
-	fAddr = "addr"
-	fS3   = "s3"
+	fAddr  = "addr"
+	fS3    = "s3"
+	fIRole = "imRole"
 )
 
 const (
@@ -37,6 +39,7 @@ const (
 
 	EnvAddr     = "REDSHIFT_ADDR"
 	EnvS3Bucket = "S3_BUCKET"
+	EnvIMRole   = "RED_SHIFT_ATTACHED_IAM_ROLE" // for S3 copy
 	EnvStore    = "STORE"
 )
 
@@ -62,6 +65,7 @@ func New() *cli.Command {
 
 			&cli.StringFlag{Name: fStore, Value: StoreS3, EnvVars: []string{EnvStore}},
 			&cli.StringFlag{Name: fS3, EnvVars: []string{EnvS3Bucket}, Required: true},
+			&cli.StringFlag{Name: fIRole, EnvVars: []string{EnvIMRole}, Required: true},
 			&cli.StringFlag{Name: fAddr, Value: dbConnect, EnvVars: []string{EnvAddr}},
 		},
 		Action: c.Action,
@@ -87,12 +91,17 @@ func (m *postgresCommand) Action(c *cli.Context) error {
 
 	tel.FromCtx(c.Context).Info("max players", tel.Int("val", PlayerMaxID))
 
+	cp := s3copy.New(s3copy.Cfg{
+		Bucket: c.String(fS3),
+		IRole:  c.String(fIRole),
+	}, r)
+
 	svc := service.New(service.Config{
 		PlayerMaxID: uint64(PlayerMaxID),
 		PlayerRate:  c.Int(fUserRPM),
 		CBRate:      c.Int(fCbRPM),
 		WindowTime:  c.Duration(fWindow),
-	}, repo)
+	}, repo, cp)
 
 	svc.Run(c.Context)
 

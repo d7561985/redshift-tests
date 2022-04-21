@@ -1,7 +1,9 @@
 package decoder
 
 import (
+	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 
 	"github.com/pkg/errors"
@@ -9,18 +11,34 @@ import (
 
 type Decoder func(interface{}, io.Writer) error
 
-func Decorate(c ...Decoder) Decoder {
-	return func(in interface{}, out io.Writer) error {
+func Decorate(c ...Decoder) (*string, Decoder) {
+	header := new(string)
+
+	return header, func(in interface{}, out io.Writer) error {
 		w := &bytes.Buffer{}
 
-		for _, cb := range c {
+		for i, mw := range c {
 			w = &bytes.Buffer{}
 			w.Reset()
-			if err := cb(in, w); err != nil {
+			if err := mw(in, w); err != nil {
 				return errors.WithStack(err)
 			}
 
 			in = w.Bytes()
+
+			if i == 0 {
+				buf := w.Bytes()
+
+				if len(buf) > 0 {
+					line, _, err := bufio.NewReader(bytes.NewBuffer(buf)).ReadLine()
+					if err != nil {
+						return errors.WithStack(err)
+					}
+
+					*header = string(line)
+					fmt.Println(string(line))
+				}
+			}
 		}
 
 		_, err := out.Write(w.Bytes())

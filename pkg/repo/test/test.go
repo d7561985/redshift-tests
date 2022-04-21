@@ -28,7 +28,7 @@ func (r *Repo) Bulk(ctx context.Context, p []*postgres.Journal) (string, error) 
 	)
 }
 
-func (r *Repo) PlayerInsert(ctx context.Context, p []*model.Player) (string, error) {
+func (r *Repo) PlayerInsert(ctx context.Context, p []*model.Player) (model.Copy, error) {
 	sql := `INSERT INTO players(id, guid, license, playerid, clickid, registerdate, language, email, 
                     isemailverify, phone, isphoneverify, ismultiaccount, birthday, accountverifytime,
                     lastlogintime, country, city, currency, sex, istest, isbot, project, activatestatus,
@@ -40,12 +40,12 @@ func (r *Repo) PlayerInsert(ctx context.Context, p []*model.Player) (string, err
                     :depositStatus, :smsStatus, :domain, :webview, :ipAddress, :userAgent, :createUnixNano, :updateUnixNano 
                      )`
 
-	return "", errors.WithStack(
+	return model.Copy{}, errors.WithStack(
 		insert(ctx, r.DB, sql, p),
 	)
 }
 
-func (r *Repo) CasinoBetInsert(ctx context.Context, p []*model.CBet) (string, error) {
+func (r *Repo) CasinoBetInsert(ctx context.Context, p []*model.CBet) (model.Copy, error) {
 	sql := `INSERT INTO cb(id, license, playerid, gamename, gametype, gameid, 
                bonusid, bet, winlose, purse, currencycode, gameprovider, gameroundid, 
                tranid, date, createunixnano, updateunixnano, rollback, status, error, 
@@ -55,7 +55,7 @@ func (r *Repo) CasinoBetInsert(ctx context.Context, p []*model.CBet) (string, er
                :tranId, :date, :createUnixNano, :updateUnixNano, :rollback, :status, :error, 
                :hall, :system, :betInfo, :agent, :domain, :webview, :isTournament)`
 
-	return "", errors.WithStack(
+	return model.Copy{}, errors.WithStack(
 		insert(ctx, r.DB, sql, p),
 	)
 }

@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS "cb"
     "status"         VARCHAR(30)              NOT NULL,
     "error"          VARCHAR(100),
     "hall"           VARCHAR(45),
-    "system"         VARCHAR(20),
+    "sstm"         VARCHAR(20),
     "betInfo"        VARCHAR(30),
     "agent"          int8                     NOT NULL,
     "domain"         VARCHAR(20)              NOT NULL,

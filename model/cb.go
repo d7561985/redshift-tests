@@ -10,33 +10,33 @@ import (
 )
 
 type CBet struct {
-	ID             uuid.UUID `json:"id"`
-	License        string    `json:"license"`
-	PlayerId       int       `json:"playerId"`
-	GameName       string    `json:"gameName"`
-	GameType       string    `json:"gameType"`
-	GameID         int       `json:"gameID"`
-	BonusID        int       `json:"bonusID"`
-	Bet            float64   `json:"bet"`
-	WinLose        float64   `json:"winLose"`
-	Purse          string    `json:"purse"`
-	CurrencyCode   string    `json:"currencyCode"`
-	GameProvider   string    `json:"gameProvider"`
-	GameRoundID    string    `json:"gameRoundID"`
-	TranID         string    `json:"tranId"`
-	Date           time.Time `json:"date"`
-	CreateUnixNano int64     `json:"createUnixNano"`
-	UpdateUnixNano int64     `json:"updateUnixNano"`
-	Rollback       bool      `json:"rollback"`
-	Status         string    `json:"status"`
-	Error          string    `json:"error"`
-	Hall           string    `json:"hall"`
-	System         string    `json:"system"`
-	BetInfo        string    `json:"betInfo"`
-	Agent          int       `json:"agent"`
-	Domain         string    `json:"domain"`
-	Webview        bool      `json:"webview"`
-	IsTournament   bool      `json:"isTournament"`
+	ID             uuid.UUID `csv:"id"`
+	License        string    `csv:"license"`
+	PlayerId       int       `csv:"playerId"`
+	GameName       string    `csv:"gameName"`
+	GameType       string    `csv:"gameType"`
+	GameID         int       `csv:"gameId"`
+	BonusID        int       `csv:"bonusId"`
+	Bet            float64   `csv:"bet"`
+	WinLose        float64   `csv:"winLose"`
+	Purse          string    `csv:"purse"`
+	CurrencyCode   string    `csv:"currencyCode"`
+	GameProvider   string    `csv:"gameProvider"`
+	GameRoundID    string    `csv:"gameRoundId"`
+	TranID         string    `csv:"tranId"`
+	Date           time.Time `csv:"date"`
+	CreateUnixNano int64     `csv:"createUnixNano"`
+	UpdateUnixNano int64     `csv:"updateUnixNano"`
+	Rollback       bool      `csv:"rollback"`
+	Status         string    `csv:"status"`
+	Error          string    `csv:"error"`
+	Hall           string    `csv:"hall"`
+	System         string    `csv:"sstm"`
+	BetInfo        string    `csv:"betInfo"`
+	Agent          int       `csv:"agent"`
+	Domain         string    `csv:"domain"`
+	Webview        bool      `csv:"webview"`
+	IsTournament   bool      `csv:"isTournament"`
 }
 
 func NewCBet(playerID int) *CBet {

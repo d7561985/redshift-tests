@@ -46,24 +46,24 @@ func New(bucket string) *Store {
 	return &Store{bucket: bucket, S3: svc}
 }
 
-func (s *Store) PlayerInsert(ctx context.Context, p []*model.Player) (string, error) {
+func (s *Store) PlayerInsert(ctx context.Context, p []*model.Player) (model.Copy, error) {
 	return s.Bulk(ctx, "players", p)
 }
 
-func (s *Store) CasinoBetInsert(ctx context.Context, p []*model.CBet) (string, error) {
+func (s *Store) CasinoBetInsert(ctx context.Context, p []*model.CBet) (model.Copy, error) {
 	return s.Bulk(ctx, "cb", p)
 }
 
-func (s *Store) Bulk(cxt context.Context, folder string, arr interface{}) (string, error) {
+func (s *Store) Bulk(cxt context.Context, table string, arr interface{}) (model.Copy, error) {
 	ctx, cancel := context.WithTimeout(cxt, timeout)
 	defer cancel()
 
-	path := fmt.Sprintf("%s/%d.csv.gz", folder, time.Now().Unix())
+	path := fmt.Sprintf("%s/%d.csv.gz", table, time.Now().Unix())
 
 	x := bytes.NewBuffer(nil)
-	dc := decoder.Decorate(csvutil.Marshal, gz.Marshal)
+	header, dc := decoder.Decorate(csvutil.Marshal, gz.Marshal)
 	if err := dc(&arr, x); err != nil {
-		return "", errors.WithStack(err)
+		return model.Copy{}, errors.WithStack(err)
 	}
 
 	// Uploads the object to S3. The Context will interrupt the request if the
@@ -79,11 +79,15 @@ func (s *Store) Bulk(cxt context.Context, folder string, arr interface{}) (strin
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == request.CanceledErrorCode {
 			// If the SDK can determine the request or retry delay was canceled
 			// by a context the CanceledErrorCode error code will be returned.
-			return "", errors.WithStack(fmt.Errorf("upload canceled due to timeout: %w", err))
+			return model.Copy{}, errors.WithStack(fmt.Errorf("upload canceled due to timeout: %w", err))
 		}
 
-		return "", errors.WithStack(fmt.Errorf("failed to upload object: %w", err))
+		return model.Copy{}, errors.WithStack(fmt.Errorf("failed to upload object: %w", err))
 	}
 
-	return path, nil
+	return model.Copy{
+		Path:   path,
+		Table:  table,
+		Fields: *header,
+	}, nil
 }
